@@ -1,54 +1,94 @@
-name: deploy
+
+name: Deploy to GitHub Pages
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches:
+      - main
+    # 如果你想要进一步定义触发条件、路径等，可以查看文档
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#on
 
 jobs:
-  checks:
-    if: github.event_name != 'push'
+  deploy:
+    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
-      - name: Test Build
-        run: |
-          if [ -e yarn.lock ]; then
-            yarn install --frozen-lockfile
-          elif [ -e package-lock.json ]; then
-            npm ci
-          else
-            npm i
-          fi
-          npm run build
-  gh-release:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: '16.x'
-      - uses: webfactory/ssh-agent@v0.5.0
-        with:
-          ssh-private-key: ${{ secrets.GH_PAGES_DEPLOY }}
-      - name: Release to GitHub Pages
-        env:
-          USE_SSH: true
-          GIT_USER: git
+          node-version: 18
+          cache: yarn
 
-        run: |
-          git config --global user.email "liuzhen@yunify.com"
-          git config --global user.name "liuzhen"
-          if [ -e yarn.lock ]; then
-            yarn install --frozen-lockfile
-          elif [ -e package-lock.json ]; then
-            npm ci
-          else
-            npm i
-          fi
-          npm run deploy
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build website
+        run: yarn build
+
+      # 部署到 GitHub Pages 的热门选择：
+      # 文档：https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-docusaurus
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # 要发布到 `gh-pages` 分支的构建输出：
+          publish_dir: ./build
+          # 下面两行会将此次部署 commit 的作者设置为官方的
+          # GH-Actions 机器人：
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          # 如果不设置这两个字段，GH actions 机器人会被默认使用。
+          # 你可以用自己的用户信息替换它们。
+          user_name: chano
+          user_email: chanowang@yunify.com
+#name: deploy
+#
+#on:
+#  pull_request:
+#    branches: [main]
+#  push:
+#    branches: [main]
+#
+#jobs:
+#  checks:
+#    if: github.event_name != 'push'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v1
+#      - uses: actions/setup-node@v1
+#        with:
+#          node-version: '16.x'
+#      - name: Test Build
+#        run: |
+#          if [ -e yarn.lock ]; then
+#            yarn install --frozen-lockfile
+#          elif [ -e package-lock.json ]; then
+#            npm ci
+#          else
+#            npm i
+#          fi
+#          npm run build
+#  gh-release:
+#    if: github.event_name != 'pull_request'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v1
+#      - uses: actions/setup-node@v1
+#        with:
+#          node-version: '16.x'
+#      - uses: webfactory/ssh-agent@v0.5.0
+#        with:
+#          ssh-private-key: ${{ secrets.GH_PAGES_DEPLOY }}
+#      - name: Release to GitHub Pages
+#        env:
+#          USE_SSH: true
+#          GIT_USER: git
+#        run: |
+#          git config --global user.email "liuzhen@yunify.com"
+#          git config --global user.name "liuzhen"
+#          if [ -e yarn.lock ]; then
+#            yarn install --frozen-lockfile
+#          elif [ -e package-lock.json ]; then
+#            npm ci
+#          else
+#            npm i
+#          fi
+#          npm run deploy
